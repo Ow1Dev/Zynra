@@ -1,4 +1,4 @@
-module github.com/example/example/config
+module github.com/Ow1Dev/Zynra/config
 
 go 1.24.2
 
