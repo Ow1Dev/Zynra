@@ -1,0 +1,41 @@
+package server
+
+import (
+	"fmt"
+	"net/http"
+	"path"
+	"strings"
+
+	"github.com/Ow1Dev/Zynra/pkgs/httpsutils"
+)
+
+func getRoot(w http.ResponseWriter, r *http.Request) {
+	cleanPath := path.Clean(r.URL.Path)
+	cleanPath = strings.Trim(cleanPath, "/")
+
+	segments := strings.Split(cleanPath, "/")
+
+	fmt.Printf("Request path segments: %v\n", segments)
+
+	if len(segments) != 1 || segments[0] == "" {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	action := segments[0]
+	if(action != "echo") {
+		http.Error(w, "Only 'echo' is allowed", http.StatusBadRequest)
+		return
+	}
+
+	httpsutils.Encode(w, http.StatusOK, map[string]string{
+		"message": "Hello, World!",
+	})
+}
+
+func NewServer() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /", getRoot)
+	var handler http.Handler = mux
+	return handler
+}
