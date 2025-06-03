@@ -19,22 +19,26 @@ import (
 	"github.com/Ow1Dev/Zynra/internal/server"
 )
 
+func initLog(w io.Writer, debug bool) {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	log.Logger = zerolog.New(w).With().Timestamp().Logger()
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	if debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
+}
+
+
 func run(ctx context.Context, w io.Writer, args []string) error {
 	_ = args // Unused args, can be used for command line arguments
 
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-  zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-
 	debug := flag.Bool("debug", false, "sets log level to debug")
 	flag.Parse()
 
-	log.Logger = zerolog.New(w).With().Timestamp().Logger()
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	if *debug {
-			zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	}
+	initLog(w, *debug)
 
 	config := config.Config{
 		Host: "0.0.0.0",

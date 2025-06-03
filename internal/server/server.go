@@ -1,12 +1,12 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"path"
 	"strings"
 
 	"github.com/Ow1Dev/Zynra/pkgs/httpsutils"
+	"github.com/rs/zerolog/log"
 )
 
 func getRoot(w http.ResponseWriter, r *http.Request) {
@@ -15,7 +15,7 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 
 	segments := strings.Split(cleanPath, "/")
 
-	fmt.Printf("Request path segments: %v\n", segments)
+	log.Debug().Msgf("Request path segments: %v\n", segments)
 
 	if len(segments) != 1 || segments[0] == "" {
 		http.Error(w, "Invalid path", http.StatusBadRequest)
