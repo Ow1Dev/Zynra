@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"io"
 	"net"
@@ -11,16 +12,29 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Ow1Dev/Zynra/internal/server"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
 	"github.com/Ow1Dev/Zynra/internal/config"
+	"github.com/Ow1Dev/Zynra/internal/server"
 )
 
 func run(ctx context.Context, w io.Writer, args []string) error {
-	_ = w // Unused writer, can be used for logging or output
 	_ = args // Unused args, can be used for command line arguments
 
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
+
+  zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
+	debug := flag.Bool("debug", false, "sets log level to debug")
+	flag.Parse()
+
+	log.Logger = zerolog.New(w).With().Timestamp().Logger()
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	if *debug {
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	}
 
 	config := config.Config{
 		Host: "0.0.0.0",
@@ -34,7 +48,7 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		Handler: srv,
 	}
 	go func() {
-		fmt.Printf("listening on %s\n", httpServer.Addr)
+		log.Info().Msgf("listening on %s", httpServer.Addr)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
 		}
