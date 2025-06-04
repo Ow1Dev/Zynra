@@ -1,7 +1,0 @@
-language = "go"
-
-[source]
-includes = ["config"]
-
-[go]
-directory = "config"
