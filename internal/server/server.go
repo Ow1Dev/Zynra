@@ -15,7 +15,7 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 
 	segments := strings.Split(cleanPath, "/")
 
-	log.Debug().Msgf("Request path segments: %v\n", segments)
+	log.Debug().Any("segments", segments).Msg("Request path segments")
 
 	if len(segments) != 1 || segments[0] == "" {
 		http.Error(w, "Invalid path", http.StatusBadRequest)
