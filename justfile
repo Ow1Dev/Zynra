@@ -1,3 +1,7 @@
+# List available commands
+default:
+    @just --list
+
 package profile='default':
     nix build \
         --json \
