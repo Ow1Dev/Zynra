@@ -20,8 +20,38 @@ func gatewayDevenv(context *config.ConfigContext) (*string, error) {
 		return nil, err
 	}
 
+	grpcurl, err := artifact.Grpcurl(context)
+	if err != nil {
+		return nil, err
+	}
+
+	protoc, err := artifact.Protoc(context)
+	if err != nil {
+		return nil, err
+	}
+
+	protocGenGo, err := artifact.ProtocGenGo(context)
+	if err != nil {
+		return nil, err
+	}
+
+	protocGenGoGRPC, err := artifact.ProtocGenGoGRPC(context)
+	if err != nil {
+		return nil, err
+	}
+
+	// staticcheck, err := artifact.Staticcheck(context)
+	// if err != nil {
+	// 	return nil, err
+	// }		
+
 	artifacts := []*string{
 		gobin,
+		grpcurl,
+		protoc,
+		protocGenGo,
+		protocGenGoGRPC,
+		// staticcheck,
 	}
 
 	contextTarget := context.GetTarget()
