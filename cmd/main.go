@@ -19,6 +19,7 @@ import (
 	"github.com/Ow1Dev/Zynra/internal/server"
 )
 
+// TODO: Make this to a package
 func initLog(w io.Writer, debug bool) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	log.Logger = zerolog.New(w).With().Timestamp().Logger()
