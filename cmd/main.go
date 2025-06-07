@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"sync"
@@ -48,13 +49,20 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		server.NewGatewayServer(), 
 		"8080",
 		config)
-	httpMngServer := httpsutils.NewHTTPServer(
-		server.NewManagementServer(),
-		"8081",
-		config)
+	httpMngServer := server.NewManagementServer()
 
 	httpGateServer.ListenAndServe()
-	httpMngServer.ListenAndServe()
+
+	go func() {
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8081))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
+		}
+		log.Info().Msgf("Management server listening on %s", lis.Addr().String())
+		if err := httpMngServer.Serve(lis); err != nil {
+			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
+		}
+	}()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -67,10 +75,7 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		if err := httpGateServer.Shutdown(shutdownCtx); err != nil {
 			fmt.Fprintf(os.Stderr, "error shutting down http server: %s\n", err)
 		}
-		if err := httpMngServer.Shutdown(shutdownCtx); err != nil {
-			fmt.Fprintf(os.Stderr, "error shutting down http server: %s\n", err)
-		}
-
+		httpMngServer.Stop()
 	}()
 	wg.Wait()
 	return nil

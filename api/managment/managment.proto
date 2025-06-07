@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "github.com/Ow1Dev/Zynra/pkgs/api/managment";
+
+service ManagementService {
+  rpc Connect(ConnectRequest) returns (ConnectResponse);
+}
+
+message ConnectRequest {
+  string name = 1;
+}
+
+message ConnectResponse {
+  string message = 1;
+}

@@ -10,8 +10,11 @@ import (
 	"sync"
 	"time"
 
+	pb "github.com/Ow1Dev/Zynra/pkgs/api/managment"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 
@@ -31,9 +34,26 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 	defer cancel()
 
 	debug := flag.Bool("debug", false, "sets log level to debug")
+	addr := flag.String("addr", "localhost:8081", "the address to connect to")
 	flag.Parse()
 
 	initLog(w, *debug)
+
+	// connnect ot the management server
+	log.Info().Msg("Connecting to management server...")
+	conn, err := grpc.NewClient(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to connect to management server: %w", err)
+	}
+	defer conn.Close()
+	c := pb.NewManagementServiceClient(conn)
+	defer cancel()
+	r, err := c.Connect(ctx, &pb.ConnectRequest{Name: "Echo Service"})
+	if err != nil {
+		return fmt.Errorf("could not greet: %w", err)
+	}
+	log.Printf("message: %s", r.GetMessage())
+	log.Info().Msg("Connected to management server")
 
 	go func() {
 		log.Info().Msg("Starting a new echo service")

@@ -1,20 +1,27 @@
 package server
 
 import (
-	"net/http"
+	"context"
 
-	"github.com/Ow1Dev/Zynra/pkgs/httpsutils"
+	pb "github.com/Ow1Dev/Zynra/pkgs/api/managment"
+	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
 )
 
-func connectHandler(w http.ResponseWriter, r *http.Request) {
-	httpsutils.Encode(w, http.StatusOK, map[string]string{
-		"message": "Connected successfully",
-	})
+type managementServiceServer struct {
+	 pb.UnimplementedManagementServiceServer
 }
 
-func NewManagementServer() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /connect", connectHandler)
-	var handler http.Handler = mux
-	return handler
+// Connect implements managment.ManagementServiceServer.
+func (m *managementServiceServer) Connect(context.Context, *pb.ConnectRequest) (*pb.ConnectResponse, error) {
+	log.Info().Msg("Client connected")
+	return &pb.ConnectResponse{
+		Message: "Connected successfully",
+	}, nil
+}
+
+func NewManagementServer() *grpc.Server {
+	s := grpc.NewServer()
+	pb.RegisterManagementServiceServer(s, &managementServiceServer{})
+	return s
 }
