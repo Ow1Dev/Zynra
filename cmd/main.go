@@ -5,8 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -17,6 +15,7 @@ import (
 
 	"github.com/Ow1Dev/Zynra/internal/config"
 	"github.com/Ow1Dev/Zynra/internal/server"
+	"github.com/Ow1Dev/Zynra/pkgs/httpsutils"
 )
 
 // TODO: Make this to a package
@@ -43,21 +42,20 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 
 	config := config.Config{
 		Host: "0.0.0.0",
-		Port: "8080",
 	}
 
-	srv := server.NewServer()
+	httpGateServer := httpsutils.NewHTTPServer(
+		server.NewGatewayServer(), 
+		"8080",
+		config)
+	httpMngServer := httpsutils.NewHTTPServer(
+		server.NewManagementServer(),
+		"8081",
+		config)
 
-	httpServer := &http.Server{
-		Addr:    net.JoinHostPort(config.Host, config.Port),
-		Handler: srv,
-	}
-	go func() {
-		log.Info().Msgf("listening on %s", httpServer.Addr)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
-		}
-	}()
+	httpGateServer.ListenAndServe()
+	httpMngServer.ListenAndServe()
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -66,9 +64,13 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		shutdownCtx := context.Background()
 		shutdownCtx, cancel := context.WithTimeout(shutdownCtx, 10 * time.Second)
 		defer cancel()
-		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		if err := httpGateServer.Shutdown(shutdownCtx); err != nil {
 			fmt.Fprintf(os.Stderr, "error shutting down http server: %s\n", err)
 		}
+		if err := httpMngServer.Shutdown(shutdownCtx); err != nil {
+			fmt.Fprintf(os.Stderr, "error shutting down http server: %s\n", err)
+		}
+
 	}()
 	wg.Wait()
 	return nil

@@ -33,7 +33,7 @@ func getRoot(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func NewServer() http.Handler {
+func NewGatewayServer() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", getRoot)
 	var handler http.Handler = mux
