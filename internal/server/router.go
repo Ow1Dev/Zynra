@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/Ow1Dev/Zynra/internal/repository"
 	"github.com/Ow1Dev/Zynra/pkgs/httpsutils"
@@ -17,10 +18,11 @@ import (
 )
 
 func sendAction(addr string, ctx context.Context) error {
+	start := time.Now()
 	log.Info().Msgf("Connecting to service at %s", addr)
 	conn, err := grpc.NewClient("[::1]:8082", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return fmt.Errorf("failed to connect to management server: %w", err)
+		return fmt.Errorf("failed to connect to service: %w", err)
 	}
 	defer conn.Close()
 	c := pb.NewGatewayServiceClient(conn)
@@ -30,6 +32,7 @@ func sendAction(addr string, ctx context.Context) error {
 		return fmt.Errorf("could not greet: %w", err)
 	}
 	log.Printf("message: %s", r.GetMessage())
+	log.Info().Msgf("Action sent to service at %s, duration: %s", addr, time.Since(start))
 
 	return nil
 }
