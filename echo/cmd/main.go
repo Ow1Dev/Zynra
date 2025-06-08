@@ -30,7 +30,7 @@ func initLog(w io.Writer, debug bool) {
 	}
 }
 
-func connectToManagementServer(ctx context.Context, addr *string) error {
+func connectToManagementServer(ctx context.Context, port uint32, addr *string) error {
 	log.Info().Msg("Connecting to management server...")
 	conn, err := grpc.NewClient(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -38,7 +38,7 @@ func connectToManagementServer(ctx context.Context, addr *string) error {
 	}
 	defer conn.Close()
 	c := pb.NewManagementServiceClient(conn)
-	r, err := c.Connect(ctx, &pb.ConnectRequest{Name: "test", Port: 1234})
+	r, err := c.Connect(ctx, &pb.ConnectRequest{Name: "test", Port: port})
 	if err != nil {
 		return fmt.Errorf("could not greet: %w", err)
 	}
@@ -57,15 +57,16 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 
 	debug := flag.Bool("debug", false, "sets log level to debug")
 	addr := flag.String("addr", "localhost:8081", "the address to connect to")
+	port := flag.Uint64("port", 1234, "the port to connect to")
 	flag.Parse()
 
 	initLog(w, *debug)
-	connectToManagementServer(ctx, addr)
+	connectToManagementServer(ctx, uint32(*port), addr)
 
 	TunnelServer := server.NewTunnelServer() 
 
 	go func() {
-		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 1234))
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
 		}
