@@ -24,6 +24,7 @@ const (
 type ConnectRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Port          uint32                 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -63,6 +64,13 @@ func (x *ConnectRequest) GetName() string {
 		return x.Name
 	}
 	return ""
+}
+
+func (x *ConnectRequest) GetPort() uint32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
 }
 
 type ConnectResponse struct {
@@ -113,9 +121,10 @@ var File_managment_managment_proto protoreflect.FileDescriptor
 
 const file_managment_managment_proto_rawDesc = "" +
 	"\n" +
-	"\x19managment/managment.proto\"$\n" +
+	"\x19managment/managment.proto\"8\n" +
 	"\x0eConnectRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\"+\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04port\x18\x02 \x01(\rR\x04port\"+\n" +
 	"\x0fConnectResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage2A\n" +
 	"\x11ManagementService\x12,\n" +

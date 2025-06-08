@@ -38,7 +38,7 @@ func connectToManagementServer(ctx context.Context, addr *string) error {
 	}
 	defer conn.Close()
 	c := pb.NewManagementServiceClient(conn)
-	r, err := c.Connect(ctx, &pb.ConnectRequest{Name: "Echo Service"})
+	r, err := c.Connect(ctx, &pb.ConnectRequest{Name: "Echo Service", Port: 8082})
 	if err != nil {
 		return fmt.Errorf("could not greet: %w", err)
 	}

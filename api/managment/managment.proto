@@ -8,6 +8,7 @@ service ManagementService {
 
 message ConnectRequest {
   string name = 1;
+  uint32 port = 2;
 }
 
 message ConnectResponse {
