@@ -5,12 +5,15 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"sync"
 	"time"
 
+	server "github.com/Ow1Dev/Zynra/echo/internal/server"
 	pb "github.com/Ow1Dev/Zynra/pkgs/api/managment"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -55,8 +58,17 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 	log.Printf("message: %s", r.GetMessage())
 	log.Info().Msg("Connected to management server")
 
+	TunnelServer := server.NewTunnelServer() 
+
 	go func() {
-		log.Info().Msg("Starting a new echo service")
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8082))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
+		}
+		log.Info().Msgf("Management server listening on %s", lis.Addr().String())
+		if err := TunnelServer.Serve(lis); err != nil {
+			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
+		}
 	}()
 	var wg sync.WaitGroup
 	wg.Add(1)

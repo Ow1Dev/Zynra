@@ -19,3 +19,10 @@ generate:
       --go-grpc_out=pkgs/api \
       --proto_path=api \
       managment/managment.proto
+    protoc \
+      --go_opt=paths=source_relative \
+      --go_out=pkgs/api \
+      --go-grpc_opt=paths=source_relative \
+      --go-grpc_out=pkgs/api \
+      --proto_path=api \
+      gateway/gateway.proto
