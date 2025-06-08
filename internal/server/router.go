@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/Ow1Dev/Zynra/internal/repository"
-	"github.com/Ow1Dev/Zynra/pkgs/httpsutils"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -65,7 +64,9 @@ func handleRunner(repo *repository.ServiceRepository) http.HandlerFunc {
 			return
 		}
 
-		httpsutils.Encode(w, http.StatusOK, msg)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(*msg))
 	})
 }
 

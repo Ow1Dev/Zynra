@@ -61,7 +61,10 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 	flag.Parse()
 
 	initLog(w, *debug)
-	connectToManagementServer(ctx, uint32(*port), addr)
+	err := connectToManagementServer(ctx, uint32(*port), addr)
+	if err != nil {
+		return fmt.Errorf("failed to connect to management server: %w", err)
+	}
 
 	TunnelServer := server.NewTunnelServer() 
 
