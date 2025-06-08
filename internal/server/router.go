@@ -17,24 +17,24 @@ import (
 	pb "github.com/Ow1Dev/Zynra/pkgs/api/gateway"
 )
 
-func sendAction(addr string, ctx context.Context) error {
+func sendAction(addr string, ctx context.Context) (*string, error) {
 	start := time.Now()
 	log.Info().Msgf("Connecting to service at %s", addr)
 	conn, err := grpc.NewClient("[::1]:8082", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return fmt.Errorf("failed to connect to service: %w", err)
+		return nil, fmt.Errorf("failed to connect to service: %w", err)
 	}
 	defer conn.Close()
 	c := pb.NewGatewayServiceClient(conn)
 
-	r, err := c.Execute(ctx, &pb.ExecuteRequest{Name: "Echo Service"})
+	r, err := c.Execute(ctx, &pb.ExecuteRequest{Name: "Action"})
 	if err != nil {
-		return fmt.Errorf("could not greet: %w", err)
+		return nil, fmt.Errorf("could not greet: %w", err)
 	}
-	log.Printf("message: %s", r.GetMessage())
 	log.Info().Msgf("Action sent to service at %s, duration: %s", addr, time.Since(start))
 
-	return nil
+	msg := r.GetMessage()
+	return &msg, nil
 }
 
 func handleRunner(repo *repository.ServiceRepository) http.HandlerFunc {
@@ -58,16 +58,14 @@ func handleRunner(repo *repository.ServiceRepository) http.HandlerFunc {
 			return
 		}
 
-		err := sendAction(service.Address, r.Context())
+		msg, err := sendAction(service.Address, r.Context())
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to send action")
 			http.Error(w, "Failed to send action", http.StatusInternalServerError)
 			return
 		}
 
-		httpsutils.Encode(w, http.StatusOK, map[string]string{
-			"message": "Hello, World!",
-		})
+		httpsutils.Encode(w, http.StatusOK, msg)
 	})
 }
 
