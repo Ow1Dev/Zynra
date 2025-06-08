@@ -15,6 +15,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/Ow1Dev/Zynra/internal/config"
+	"github.com/Ow1Dev/Zynra/internal/repository"
 	"github.com/Ow1Dev/Zynra/internal/server"
 	"github.com/Ow1Dev/Zynra/pkgs/httpsutils"
 )
@@ -45,11 +46,13 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		Host: "0.0.0.0",
 	}
 
+	repo := repository.NewServiceRepository()
+
 	httpRouterServer := httpsutils.NewHTTPServer(
-		server.NewRouterServer(), 
+		server.NewRouterServer(repo), 
 		"8080",
 		config)
-	httpMngServer := server.NewManagementServer()
+	httpMngServer := server.NewManagementServer(repo)
 
 	httpRouterServer.ListenAndServe()
 

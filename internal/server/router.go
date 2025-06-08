@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/Ow1Dev/Zynra/internal/repository"
 	"github.com/Ow1Dev/Zynra/pkgs/httpsutils"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -15,8 +16,9 @@ import (
 	pb "github.com/Ow1Dev/Zynra/pkgs/api/gateway"
 )
 
-func sendAction(ctx context.Context) error {
-	conn, err := grpc.NewClient("localhost:8082", grpc.WithTransportCredentials(insecure.NewCredentials()))
+func sendAction(addr string, ctx context.Context) error {
+	log.Info().Msgf("Connecting to service at %s", addr)
+	conn, err := grpc.NewClient("[::1]:8082", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("failed to connect to management server: %w", err)
 	}
@@ -32,40 +34,43 @@ func sendAction(ctx context.Context) error {
 	return nil
 }
 
-func getRoot(w http.ResponseWriter, r *http.Request) {
-	cleanPath := path.Clean(r.URL.Path)
-	cleanPath = strings.Trim(cleanPath, "/")
+func handleRunner(repo *repository.ServiceRepository) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cleanPath := path.Clean(r.URL.Path)
+		cleanPath = strings.Trim(cleanPath, "/")
 
-	segments := strings.Split(cleanPath, "/")
+		segments := strings.Split(cleanPath, "/")
 
-	log.Debug().Any("segments", segments).Msg("Request path segments")
+		log.Debug().Any("segments", segments).Msg("Request path segments")
 
-	if len(segments) != 1 || segments[0] == "" {
-		http.Error(w, "Invalid path", http.StatusBadRequest)
-		return
-	}
+		if len(segments) != 1 || segments[0] == "" {
+			http.Error(w, "Invalid path", http.StatusBadRequest)
+			return
+		}
 
-	action := segments[0]
-	if(action != "echo") {
-		http.Error(w, "Only 'echo' is allowed", http.StatusBadRequest)
-		return
-	}
+		action := segments[0]
+		service, exists := repo.GetService(action)
+		if !exists {
+			http.Error(w, fmt.Sprintf("Service '%s' not found", action), http.StatusNotFound)
+			return
+		}
 
-	err := sendAction(r.Context())
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to send action")
-		http.Error(w, "Failed to send action", http.StatusInternalServerError)
-		return
-	}
+		err := sendAction(service.Address, r.Context())
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to send action")
+			http.Error(w, "Failed to send action", http.StatusInternalServerError)
+			return
+		}
 
-	httpsutils.Encode(w, http.StatusOK, map[string]string{
-		"message": "Hello, World!",
+		httpsutils.Encode(w, http.StatusOK, map[string]string{
+			"message": "Hello, World!",
+		})
 	})
 }
 
-func NewRouterServer() http.Handler {
+func NewRouterServer(repo *repository.ServiceRepository) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", getRoot)
+	mux.HandleFunc("GET /", handleRunner(repo))
 	var handler http.Handler = mux
 	return handler
 }
