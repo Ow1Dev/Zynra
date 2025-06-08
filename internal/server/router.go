@@ -20,7 +20,7 @@ import (
 func sendAction(addr string, ctx context.Context) (*string, error) {
 	start := time.Now()
 	log.Info().Msgf("Connecting to service at %s", addr)
-	conn, err := grpc.NewClient("[::1]:8082", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to service: %w", err)
 	}

@@ -65,7 +65,7 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 	TunnelServer := server.NewTunnelServer() 
 
 	go func() {
-		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8082))
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 1234))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
 		}
