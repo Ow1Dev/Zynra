@@ -30,6 +30,25 @@ func initLog(w io.Writer, debug bool) {
 	}
 }
 
+func connectToManagementServer(ctx context.Context, addr *string) error {
+	log.Info().Msg("Connecting to management server...")
+	conn, err := grpc.NewClient(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to connect to management server: %w", err)
+	}
+	defer conn.Close()
+	c := pb.NewManagementServiceClient(conn)
+	r, err := c.Connect(ctx, &pb.ConnectRequest{Name: "Echo Service"})
+	if err != nil {
+		return fmt.Errorf("could not greet: %w", err)
+	}
+	log.Printf("message: %s", r.GetMessage())
+	conn.Close()
+	log.Info().Msg("Connected to management server")
+
+	return nil
+}
+
 func run(ctx context.Context, w io.Writer, args []string) error {
 	_ = args // Unused args, can be used for command line arguments
 
@@ -41,22 +60,7 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 	flag.Parse()
 
 	initLog(w, *debug)
-
-	// connnect ot the management server
-	log.Info().Msg("Connecting to management server...")
-	conn, err := grpc.NewClient(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return fmt.Errorf("failed to connect to management server: %w", err)
-	}
-	defer conn.Close()
-	c := pb.NewManagementServiceClient(conn)
-	defer cancel()
-	r, err := c.Connect(ctx, &pb.ConnectRequest{Name: "Echo Service"})
-	if err != nil {
-		return fmt.Errorf("could not greet: %w", err)
-	}
-	log.Printf("message: %s", r.GetMessage())
-	log.Info().Msg("Connected to management server")
+	connectToManagementServer(ctx, addr)
 
 	TunnelServer := server.NewTunnelServer() 
 
@@ -65,7 +69,7 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
 		}
-		log.Info().Msgf("Management server listening on %s", lis.Addr().String())
+		log.Info().Msgf("Gateway server listening on %s", lis.Addr().String())
 		if err := TunnelServer.Serve(lis); err != nil {
 			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
 		}
@@ -78,6 +82,7 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		shutdownCtx := context.Background()
 		shutdownCtx, cancel := context.WithTimeout(shutdownCtx, 10 * time.Second)
 		defer cancel()
+		TunnelServer.Stop()
 	}()
 	wg.Wait()
 	return nil
