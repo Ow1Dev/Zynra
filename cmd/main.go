@@ -45,13 +45,13 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		Host: "0.0.0.0",
 	}
 
-	httpGateServer := httpsutils.NewHTTPServer(
-		server.NewGatewayServer(), 
+	httpRouterServer := httpsutils.NewHTTPServer(
+		server.NewRouterServer(), 
 		"8080",
 		config)
 	httpMngServer := server.NewManagementServer()
 
-	httpGateServer.ListenAndServe()
+	httpRouterServer.ListenAndServe()
 
 	go func() {
 		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8081))
@@ -72,7 +72,7 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 		shutdownCtx := context.Background()
 		shutdownCtx, cancel := context.WithTimeout(shutdownCtx, 10 * time.Second)
 		defer cancel()
-		if err := httpGateServer.Shutdown(shutdownCtx); err != nil {
+		if err := httpRouterServer.Shutdown(shutdownCtx); err != nil {
 			fmt.Fprintf(os.Stderr, "error shutting down http server: %s\n", err)
 		}
 		httpMngServer.Stop()
