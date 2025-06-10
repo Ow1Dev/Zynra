@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	pb "github.com/Ow1Dev/Zynra/pkgs/api/gateway"
+	"github.com/Ow1Dev/Zynra/pkgs/httpsutils"
 )
 
 func sendAction(addr string, ctx context.Context) (*string, error) {
@@ -70,8 +71,17 @@ func handleRunner(repo *repository.ServiceRepository) http.HandlerFunc {
 	})
 }
 
+func HealthCheckHandler(repo *repository.ServiceRepository) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		httpsutils.Encode(w, http.StatusOK, map[string]string{
+			"status": "healthy",
+		})
+	})
+}
+
 func NewRouterServer(repo *repository.ServiceRepository) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /health", HealthCheckHandler(repo))
 	mux.HandleFunc("GET /", handleRunner(repo))
 	var handler http.Handler = mux
 	return handler
