@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"path"
 	"strings"
 	"time"
 
@@ -17,7 +16,7 @@ import (
 	"github.com/Ow1Dev/Zynra/pkgs/httpsutils"
 )
 
-func sendAction(addr string, ctx context.Context) (*string, error) {
+func sendAction(addr string, action string, ctx context.Context) (*string, error) {
 	start := time.Now()
 	log.Info().Msgf("Connecting to service at %s", addr)
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -27,7 +26,7 @@ func sendAction(addr string, ctx context.Context) (*string, error) {
 	defer conn.Close()
 	c := pb.NewGatewayServiceClient(conn)
 
-	r, err := c.Execute(ctx, &pb.ExecuteRequest{Name: "Action"})
+	r, err := c.Execute(ctx, &pb.ExecuteRequest{Name: action})
 	if err != nil {
 		return nil, fmt.Errorf("could not greet: %w", err)
 	}
@@ -39,26 +38,33 @@ func sendAction(addr string, ctx context.Context) (*string, error) {
 
 func handleRunner(repo *repository.ServiceRepository) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cleanPath := path.Clean(r.URL.Path)
-		cleanPath = strings.Trim(cleanPath, "/")
+    parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 
-		segments := strings.Split(cleanPath, "/")
+    // Check if we have at least two parts: service and action
+    if len(parts) < 2 {
+        http.Error(w, "URL must be in the format /service/action", http.StatusBadRequest)
+        return
+    }
 
-		log.Debug().Any("segments", segments).Msg("Request path segments")
+    servicePath := strings.TrimSpace(parts[0])
+    if servicePath == "" {
+        http.Error(w, "Service parameter is required", http.StatusBadRequest)
+        return
+    }
 
-		if len(segments) != 1 || segments[0] == "" {
-			http.Error(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
+    actionPath := strings.TrimSpace(parts[1])
+    if actionPath == "" {
+        http.Error(w, "Action parameter is required", http.StatusBadRequest)
+        return
+    }
 
-		action := segments[0]
-		service, exists := repo.GetService(action)
+		service, exists := repo.GetService(servicePath)
 		if !exists {
-			http.Error(w, fmt.Sprintf("Service '%s' not found", action), http.StatusNotFound)
+			http.Error(w, fmt.Sprintf("Service '%s' not found", actionPath), http.StatusNotFound)
 			return
 		}
 
-		msg, err := sendAction(service.Address, r.Context())
+		msg, err := sendAction(service.Address, actionPath, r.Context())
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to send action")
 			http.Error(w, "Failed to send action", http.StatusInternalServerError)
@@ -82,7 +88,7 @@ func HealthCheckHandler(repo *repository.ServiceRepository) http.HandlerFunc {
 func NewRouterServer(repo *repository.ServiceRepository) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", HealthCheckHandler(repo))
-	mux.HandleFunc("GET /", handleRunner(repo))
+	mux.HandleFunc("GET /{service}/{action}", handleRunner(repo))
 	var handler http.Handler = mux
 	return handler
 }
