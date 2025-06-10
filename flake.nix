@@ -19,7 +19,7 @@
         ...
       }: let
         name = "Zynra";
-        vendorHash = "sha256-nZu9e6jKHZ2ndhWCjIbrGjy7qRBOsdrteM10btV6+qo="; # update whenever go.mod changes
+        vendorHash = "sha256-Wx1oYm5IHPD8+MH1ohp2eH+spuqiOYmayN3gu77c7aE=";
       in {
         devShells = {
           default = pkgs.mkShell {
