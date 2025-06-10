@@ -53,7 +53,7 @@ func (g *gatewayServiceServer) Execute(ctx context.Context, request *pb.ExecuteR
 	case "foo":
 			result, err = doFoo(ctx)
 	default:
-		 //todo: should we return an error here?
+		 //TODO: should we return an error here?
 			log.Error().Msgf("Unknown action: %s", action)
 			return nil, fmt.Errorf("unknown action: %s", action)
 	}
