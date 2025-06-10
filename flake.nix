@@ -19,7 +19,7 @@
         ...
       }: let
         name = "Zynra";
-        vendorHash = "sha256-Wx1oYm5IHPD8+MH1ohp2eH+spuqiOYmayN3gu77c7aE=";
+        vendorHash = "sha256-int+VOY11p/Vg/ZVKf2I37AejHvH0EUZJoW+U8EFVbQ=";
       in {
         devShells = {
           default = pkgs.mkShell {

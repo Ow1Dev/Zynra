@@ -2,6 +2,10 @@
 default:
     @just --list
 
+update:
+    nix flake update
+    go get -u ./...
+
 package profile='default':
     nix build \
         --json \
