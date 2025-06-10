@@ -48,6 +48,9 @@ func run(ctx context.Context, w io.Writer, args []string) error {
 
 	repo := repository.NewServiceRepository()
 
+	job := repository.NewCleanupJob(repo)
+	job.Start(ctx, 5*time.Second)
+
 	httpRouterServer := httpsutils.NewHTTPServer(
 		server.NewRouterServer(repo), 
 		"8080",

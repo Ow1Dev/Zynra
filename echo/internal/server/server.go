@@ -13,6 +13,11 @@ type gatewayServiceServer struct {
 	pb.UnimplementedGatewayServiceServer
 }
 
+// Ping implements gateway.GatewayServiceServer.
+func (g *gatewayServiceServer) Ping(context.Context, *pb.PingRequest) (*pb.PingResponse, error) {
+	return &pb.PingResponse{ Message: "pong" }, nil
+}
+
 // Execute implements gateway.GatewayServiceServer.
 func (g *gatewayServiceServer) Execute(ctx context.Context, request *pb.ExecuteRequest) (*pb.ExecuteResponse, error) {
 	log.Info().Msgf("Received request: %s", request.GetName())

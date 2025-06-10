@@ -4,6 +4,7 @@ option go_package = "github.com/Ow1Dev/Zynra/pkgs/api/gateway";
 
 service GatewayService {
   rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+  rpc Ping(PingRequest) returns (PingResponse);
 }
 
 message ExecuteRequest {
@@ -12,5 +13,12 @@ message ExecuteRequest {
 }
 
 message ExecuteResponse {
+  string message = 1;
+}
+
+message PingRequest {
+}
+
+message PingResponse {
   string message = 1;
 }
