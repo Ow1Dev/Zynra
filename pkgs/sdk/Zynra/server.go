@@ -1,4 +1,4 @@
-package internal
+package zynra
 
 import (
 	"context"
@@ -12,24 +12,7 @@ import (
 
 type gatewayServiceServer struct {
 	pb.UnimplementedGatewayServiceServer
-}
-
-func doBar(ctx context.Context) (any, error) {
-	_ = ctx // Use ctx if needed for context-aware operations
-
-	return map[string]string{
-		"message": "Hello from the bar action",
-		"SomeData": "This is some data from the bar action",
-	}, nil
-}
-
-func doFoo(ctx context.Context) (any, error) {
-	_ = ctx // Use ctx if needed for context-aware operations
-
-	return map[string]string{
-		"message": "Hello from the foo action",
-		"status":  "success",
-	}, nil
+	actions map[string]ActionHandler
 }
 
 // Ping implements gateway.GatewayServiceServer.
@@ -47,20 +30,15 @@ func (g *gatewayServiceServer) Execute(ctx context.Context, request *pb.ExecuteR
 			err    error
 	)
 
-	switch action {
-	case "bar":
-			result, err = doBar(ctx)
-	case "foo":
-			result, err = doFoo(ctx)
-	default:
-		 //TODO: should we return an error here?
-			log.Error().Msgf("Unknown action: %s", action)
-			return nil, fmt.Errorf("unknown action: %s", action)
-	}
-
-	if err != nil {
+	if handler, exists := g.actions[action]; exists {
+		result, err = handler(ctx)
+		if err != nil {
 			log.Error().Err(err).Msgf("Failed to execute action: %s", action)
 			return nil, fmt.Errorf("failed to execute action: %s, error: %w", action, err)
+		}
+	} else {
+		log.Error().Msgf("Unknown action: %s", action)
+		return nil, fmt.Errorf("unknown action: %s", action)
 	}
 
 	messageJSON, err := json.Marshal(result)
@@ -76,8 +54,10 @@ func (g *gatewayServiceServer) Execute(ctx context.Context, request *pb.ExecuteR
 	return response, nil
 }
 
-func NewTunnelServer() *grpc.Server {
+func newTunnelServer(actions map[string]ActionHandler) *grpc.Server {
 	s := grpc.NewServer()
-	pb.RegisterGatewayServiceServer(s, &gatewayServiceServer{})
+	pb.RegisterGatewayServiceServer(s, &gatewayServiceServer{
+		actions: actions,
+	})
 	return s
 }

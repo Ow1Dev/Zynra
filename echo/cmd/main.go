@@ -3,100 +3,62 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
-	"io"
-	"net"
-	"os"
-	"os/signal"
-	"sync"
-	"time"
 
-	server "github.com/Ow1Dev/Zynra/echo/internal/server"
-	pb "github.com/Ow1Dev/Zynra/pkgs/api/managment"
-
-	"github.com/rs/zerolog"
+	zynra "github.com/Ow1Dev/Zynra/pkgs/sdk/Zynra"
 	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
+// Example on how to use a custom logger
+type zeroLogger struct {}
 
-func initLog(w io.Writer, debug bool) {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	log.Logger = zerolog.New(w).With().Timestamp().Logger()
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	if debug {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	}
+func (l *zeroLogger) LogInfo(format string, v ...any) {
+	log.Info().Msgf(format, v...)
 }
 
-func connectToManagementServer(ctx context.Context, port uint32, addr *string) error {
-	log.Info().Msg("Connecting to management server...")
-	conn, err := grpc.NewClient(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return fmt.Errorf("failed to connect to management server: %w", err)
-	}
-	defer conn.Close()
-	c := pb.NewManagementServiceClient(conn)
-	r, err := c.Connect(ctx, &pb.ConnectRequest{Name: "test", Port: port})
-	if err != nil {
-		return fmt.Errorf("could not greet: %w", err)
-	}
-	log.Printf("message: %s", r.GetMessage())
-	conn.Close()
-	log.Info().Msg("Connected to management server")
-
-	return nil
+func (l *zeroLogger) LogWarn(format string, v ...any) {
+	log.Warn().Msgf(format, v...)
 }
 
-func run(ctx context.Context, w io.Writer, args []string) error {
-	_ = args // Unused args, can be used for command line arguments
+func (l *zeroLogger) LogError(format string, v ...any) {
+	log.Error().Msgf(format, v...)
+}
 
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
-	defer cancel()
 
-	debug := flag.Bool("debug", false, "sets log level to debug")
-	addr := flag.String("addr", "localhost:8081", "the address to connect to")
-	port := flag.Uint64("port", 1234, "the port to connect to")
+// Example on how to make a handler
+func fooHandler(_ context.Context) (any, error) {
+	type response struct {
+    Status string `json:"status"`
+    Data struct {
+        Message string `json:"message"`
+    } `json:"data"`
+}
+
+	var resp response
+	resp.Status = "success"
+	resp.Data.Message = "Hello, world!"
+
+	return resp, nil
+}
+
+// The main function to show how to set it up
+func main() {
+	addr := flag.String("addr", "localhost:8081", "Address to connect to")
+	port := flag.Uint("port", 1234, "Port to connect to")
 	flag.Parse()
 
-	initLog(w, *debug)
-	err := connectToManagementServer(ctx, uint32(*port), addr)
-	if err != nil {
-		return fmt.Errorf("failed to connect to management server: %w", err)
-	}
-
-	TunnelServer := server.NewTunnelServer() 
-
-	go func() {
-		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
-		}
-		log.Info().Msgf("Gateway server listening on %s", lis.Addr().String())
-		if err := TunnelServer.Serve(lis); err != nil {
-			fmt.Fprintf(os.Stderr, "error listening and serving: %s\n", err)
-		}
-	}()
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		<-ctx.Done()
-		shutdownCtx := context.Background()
-		shutdownCtx, cancel := context.WithTimeout(shutdownCtx, 10 * time.Second)
-		defer cancel()
-		TunnelServer.Stop()
-	}()
-	wg.Wait()
-	return nil
-}
-
-
-func main() {
+	// Setup context and service
 	ctx := context.Background()
-	if err := run(ctx, os.Stdout, os.Args); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
-		os.Exit(1)
+	service := zynra.NewService(*addr)
+	service.SetLogger(&zeroLogger{})
+	defer service.Stop()
+
+	// Register actions
+	service.AddAction("foo", fooHandler)
+
+	log.Info().Msgf("Starting Zynra service at %s:%d...", *addr, *port)
+
+	// Start listening (consider handling error if Listen can fail)
+	if err := service.Listen(uint32(*port), ctx); err != nil {
+		log.Fatal().Msgf("Failed to start service: %v", err)
 	}
 }
